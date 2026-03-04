@@ -484,6 +484,27 @@ Object.defineProperty(Emittery, "listenerRemoved", {
 });
 
 // src/index.ts
+function getThreatName(threat) {
+  switch (threat) {
+    case 0:
+      return "Rockets";
+    case 1:
+      return "HazardousMaterials";
+    case 2:
+      return "Terrorists";
+    case 3:
+      return "Earthquake";
+    case 4:
+      return "Tsunami";
+    case 5:
+      return "UnmannedAircraft";
+    case 6:
+    case 7:
+      return "NonConventionalMissile";
+    default:
+      return "GeneralAlert";
+  }
+}
 var WS_URL = "wss://ws.tzevaadom.co.il/socket?platform=WEB";
 var HEADERS = { Origin: "https://www.tzevaadom.co.il" };
 var MAX_DELAY = 1e4;
@@ -505,6 +526,10 @@ var TzevaadomClient = class extends Emittery {
         return;
       try {
         const { type, data } = JSON.parse(raw.toString());
+        if (type == "ALERT") {
+          const casted = data;
+          casted.threatName = getThreatName(casted.threat);
+        }
         this.emit(type, data);
       } catch {
       }

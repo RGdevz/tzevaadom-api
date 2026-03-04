@@ -2,6 +2,28 @@ import WebSocket from 'ws';
 import Emittery from 'emittery';
 
 
+function getThreatName(threat:number) {
+  switch (threat) {
+    case 0: // Rockets
+      return "Rockets";
+    case 1: // 
+      return "HazardousMaterials";
+    case 2: // 
+      return "Terrorists";
+    case 3: // Earthquake
+      return "Earthquake";
+    case 4: // 
+      return "Tsunami";
+    case 5: // 
+      return "UnmannedAircraft";
+    case 6: // 
+    case 7: // Radiological
+      return "NonConventionalMissile";
+    default: 
+      return "GeneralAlert";
+  }
+}
+
 
 const WS_URL = 'wss://ws.tzevaadom.co.il/socket?platform=WEB';
 const HEADERS = { Origin: 'https://www.tzevaadom.co.il' };
@@ -9,9 +31,21 @@ const MAX_DELAY = 10_000;
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+export type ThreatName =
+  | "Rockets"
+  | "HazardousMaterials"
+  | "Terrorists"
+  | "Earthquake"
+  | "Tsunami"
+  | "UnmannedAircraft"
+  | "NonConventionalMissile"
+  | "GeneralAlert"
+
+
 export interface AlertData {
   notificationId: string;
   time: number;
+  threatName:ThreatName,
   threat: number;
   isDrill: boolean;
   cities: string[];
@@ -87,6 +121,12 @@ class TzevaadomClient extends Emittery<EventMap> {
       if (typeof raw !== 'string' && !Buffer.isBuffer(raw)) return;
       try {
         const { type, data } = JSON.parse(raw.toString()) as IncomingMessage;
+
+        if (type == 'ALERT'){
+        const casted = data as AlertData
+        casted.threatName = getThreatName(casted.threat)
+        }
+
         this.emit(type, data);
       } catch {
         // ignore malformed frames

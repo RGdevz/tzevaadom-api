@@ -612,9 +612,11 @@ declare class Emittery<
 	bindMethods(target: Record<string, unknown>, methodNames?: readonly string[]): void;
 }
 
+type ThreatName = "Rockets" | "HazardousMaterials" | "Terrorists" | "Earthquake" | "Tsunami" | "UnmannedAircraft" | "NonConventionalMissile" | "GeneralAlert";
 interface AlertData {
     notificationId: string;
     time: number;
+    threatName: ThreatName;
     threat: number;
     isDrill: boolean;
     cities: string[];
@@ -665,4 +667,4 @@ declare class TzevaadomClient extends Emittery<EventMap> {
 }
 declare const createClient: () => TzevaadomClient;
 
-export { type AlertData, type ListsVersionsData, type SystemMessageData, createClient };
+export { type AlertData, type ListsVersionsData, type SystemMessageData, type ThreatName, createClient };
