@@ -1,0 +1,37 @@
+{
+  "name": "tzevaadom-api",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "tsup && node dist/index.cjs",
+    "build": "tsup"
+  },
+  "author": "",
+  "license": "ISC",
+  "main": "./dist/index.cjs",
+  "files": [
+    "dist"
+  ],
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^14.18.36",
+    "@types/ws": "^8.18.1",
+    "builtin-modules": "^3.3.0",
+    "execa": "^8.0.1",
+    "tsup": "^8.0.2",
+    "emittery": "^1.2.1",
+
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "ws": "^8.19.0"
+  }
+}
