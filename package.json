@@ -1,5 +1,5 @@
 {
-  "name": "tzevaadom-api",
+  "name": "@rg-dev/tzevaadom-api",
   "version": "1.0.0",
   "description": "",
   "scripts": {
@@ -30,6 +30,9 @@
     "emittery": "^1.2.1",
 
     "typescript": "^5.4.5"
+  },
+    "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "ws": "^8.19.0"
