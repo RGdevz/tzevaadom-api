@@ -1,14 +1,13 @@
 {
   "name": "@rg-dev/tzevaadom-api",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "",
   "scripts": {
-    "test": "tsup && node dist/index.cts",
     "build": "tsup"
   },
   "author": "",
   "license": "ISC",
-  "main": "./dist/index.cts",
+  "main": "./dist/index.cjs",
   "files": [
     "dist"
   ],
@@ -17,8 +16,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/index.cts",
-      "require": "./dist/index.cts"
+      "import": "./dist/index.cjs",
+      "require": "./dist/index.cjs"
     }
   },
   "devDependencies": {

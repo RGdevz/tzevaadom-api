@@ -40,7 +40,9 @@ export default defineConfig({
  minify:false,
  clean: true,
 
- dts: true,
+ dts: {
+    resolve:true,
+ },
  platform: 'node',
 }
 )
