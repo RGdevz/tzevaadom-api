@@ -29,7 +29,8 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/index.ts
 var src_exports = {};
 __export(src_exports, {
-  createClient: () => createClient
+  createPollingClient: () => createPollingClient,
+  createWebSocketClient: () => createWebSocketClient
 });
 module.exports = __toCommonJS(src_exports);
 var import_ws = __toESM(require("ws"), 1);
@@ -484,6 +485,7 @@ Object.defineProperty(Emittery, "listenerRemoved", {
 });
 
 // src/index.ts
+var import_lru_cache = require("lru-cache");
 function getThreatName(threat) {
   switch (threat) {
     case 0:
@@ -505,45 +507,128 @@ function getThreatName(threat) {
       return "GeneralAlert";
   }
 }
+var POLLING_URL = "https://api.tzevaadom.co.il/notifications";
+var DEFAULT_INTERVAL = 1500;
+var SEEN_IDS_MAX = 500;
+var TzevaadomPollingClient = class extends Emittery {
+  intervalMs;
+  timer = null;
+  seenIds = new import_lru_cache.LRUCache({ max: SEEN_IDS_MAX });
+  running = false;
+  constructor(intervalMs = DEFAULT_INTERVAL) {
+    super();
+    this.intervalMs = intervalMs;
+  }
+  start() {
+    if (this.running)
+      return;
+    this.running = true;
+    this.emit("connected", void 0);
+    this.scheduleNext();
+  }
+  stop() {
+    this.running = false;
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.emit("disconnected", void 0);
+  }
+  scheduleNext() {
+    this.timer = setTimeout(() => this.poll(), this.intervalMs);
+  }
+  async poll() {
+    if (!this.running) {
+      return;
+    }
+    try {
+      const res = await fetch(
+        POLLING_URL,
+        {
+          headers: { Origin: "https://www.tzevaadom.co.il" }
+        }
+      );
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const messages = await res.json();
+      for (const msg of messages) {
+        const id = msg.notificationId;
+        if (id) {
+          if (this.seenIds.has(id)) {
+            continue;
+          }
+          this.seenIds.set(id, true);
+        }
+        msg.threatName = getThreatName(msg.threat);
+        this.emit("ALERT", msg);
+      }
+    } catch (err) {
+      this.emit("error", err instanceof Error ? err : new Error(String(err)));
+    }
+    if (this.running) {
+      this.scheduleNext();
+    }
+  }
+};
 var WS_URL = "wss://ws.tzevaadom.co.il/socket?platform=WEB";
 var HEADERS = { Origin: "https://www.tzevaadom.co.il" };
 var MAX_DELAY = 1e4;
-var TzevaadomClient = class extends Emittery {
+var CONNECTION_TIMEOUT = 1e4;
+var TzevaadomWsClient = class extends Emittery {
   attempt = 0;
   ws = null;
+  connectionTimeout = null;
   constructor() {
     super();
     this.connect();
   }
+  clearConnectionTimeout() {
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
+  }
   connect() {
     this.ws = new import_ws.default(WS_URL, { headers: HEADERS });
-    this.ws.on("open", () => {
-      this.attempt = 0;
-      this.emit("connected", void 0);
-    });
-    this.ws.on("message", (raw) => {
-      if (typeof raw !== "string" && !Buffer.isBuffer(raw))
-        return;
-      try {
-        const { type, data } = JSON.parse(raw.toString());
-        if (type == "ALERT") {
-          const casted = data;
-          casted.threatName = getThreatName(casted.threat);
-        }
-        this.emit(type, data);
-      } catch {
-      }
-    });
+    this.connectionTimeout = setTimeout(() => {
+      var _a;
+      console.log(`Connection timed out after ${CONNECTION_TIMEOUT}ms \u2014 terminating...`);
+      this.emit("error", new Error(`Connection timed out after ${CONNECTION_TIMEOUT}ms \u2014 terminating...`));
+      (_a = this.ws) == null ? void 0 : _a.terminate();
+    }, CONNECTION_TIMEOUT);
     this.ws.on(
-      "error",
-      (err) => {
-        console.error("ws error", err);
-        this.emit("error", err);
+      "open",
+      () => {
+        this.clearConnectionTimeout();
+        this.attempt = 0;
+        this.emit("connected", void 0);
       }
     );
     this.ws.on(
+      "message",
+      (raw) => {
+        if (typeof raw !== "string" && !Buffer.isBuffer(raw))
+          return;
+        try {
+          const { type, data } = JSON.parse(raw.toString());
+          if (type === "ALERT") {
+            const casted = data;
+            casted.threatName = getThreatName(casted.threat);
+          }
+          this.emit(type, data);
+        } catch {
+        }
+      }
+    );
+    this.ws.on("error", (err) => {
+      console.error("ws error", err);
+      this.emit("error", err);
+    });
+    this.ws.on(
       "close",
       (code) => {
+        this.clearConnectionTimeout();
         const delay = Math.min(1e3 * 2 ** this.attempt++, MAX_DELAY);
         this.emit("disconnected", void 0);
         console.log(`Closed (${code}) \u2014 reconnecting in ${delay}ms...`);
@@ -553,13 +638,16 @@ var TzevaadomClient = class extends Emittery {
   }
   disconnect() {
     var _a, _b;
+    this.clearConnectionTimeout();
     (_a = this.ws) == null ? void 0 : _a.removeAllListeners();
     (_b = this.ws) == null ? void 0 : _b.close();
     this.ws = null;
   }
 };
-var createClient = () => new TzevaadomClient();
+var createWebSocketClient = () => new TzevaadomWsClient();
+var createPollingClient = (intervalMs) => new TzevaadomPollingClient(intervalMs);
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  createClient
+  createPollingClient,
+  createWebSocketClient
 });

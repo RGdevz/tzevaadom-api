@@ -658,13 +658,27 @@ type EventMap = {
     disconnected: undefined;
     error: Error;
 };
-declare class TzevaadomClient extends Emittery<EventMap> {
+declare class TzevaadomPollingClient extends Emittery<EventMap> {
+    private intervalMs;
+    private timer;
+    private seenIds;
+    private running;
+    constructor(intervalMs?: number);
+    start(): void;
+    stop(): void;
+    private scheduleNext;
+    private poll;
+}
+declare class TzevaadomWsClient extends Emittery<EventMap> {
     private attempt;
     private ws;
+    private connectionTimeout;
     constructor();
+    private clearConnectionTimeout;
     private connect;
     disconnect(): void;
 }
-declare const createClient: () => TzevaadomClient;
+declare const createWebSocketClient: () => TzevaadomWsClient;
+declare const createPollingClient: (intervalMs?: number) => TzevaadomPollingClient;
 
-export { type AlertData, type ListsVersionsData, type SystemMessageData, type ThreatName, createClient };
+export { type AlertData, type ListsVersionsData, type SystemMessageData, type ThreatName, createPollingClient, createWebSocketClient };
